@@ -1,0 +1,53 @@
+name: Build Advanced Installer Project (.AIP)  Demo
+on: [workflow_dispatch]
+env:
+  advancedinstaller_url: 'https://www.advancedinstaller.com/downloads/advinst-costi-test.msi'
+  USERPROFILE: C:\Users\runneradmin
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required to checkout code
+jobs:
+  advinst-aip-build-demo:
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_FEDERATED_TOKEN_FILE: ${{ github.workspace }}\oidc-token.txt
+    runs-on: windows-latest
+    environment: abcd
+    name: Test Azure Key Vault
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+      - name: Test Background CLI Token Fetch
+        run: |
+          az account get-access-token --resource "https://vault.azure.net" --tenant ${{ vars.AZURE_TENANT_ID }}
+      - name: Fetch and Save GitHub OIDC Token
+        uses: actions/github-script@v7
+        with:
+         script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange');
+            require('fs').writeFileSync('oidc-token.txt', token);
+      - name: Build AIP
+        uses: caphyon/advinst-github-action@main
+        with:
+          advinst-version: '22.0'
+          advinst-license: ${{ secrets.ADVINST_LICENSE_KEY }}
+          advinst-enable-automation: 'true'
+          aip-path: ${{ github.workspace }}\test1.aip
+          aip-build-name: DefaultBuild
+          aip-package-name: test1.msi
+          aip-output-dir:  ${{ github.workspace }}\test1-SetupFiles
+          aip-commands: |
+            SetProperty FOO="foo"
+            SetVersion 1.2.0
+      - name: Publish setup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test1
+          path: ${{ github.workspace }}\test1-SetupFiles\test1.msi
