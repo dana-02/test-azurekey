@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  advancedinstaller_url: 'https://www.advancedinstaller.com/downloads/advinst-costi-test.msi'
+  advancedinstaller_url: "https://storage.advancedupdater.cloud/downloads/advinst-dana-test-5313.msi"
   USERPROFILE: 'C:\Users\runneradmin'
 
 permissions:
